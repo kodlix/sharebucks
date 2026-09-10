@@ -34,9 +34,9 @@ describe("fetch-backed api service", () => {
             display_name: "New User",
         });
 
-        expect(fetchMock).toHaveBeenCalledWith("/api/auth/register", expect.objectContaining({
+        expect(fetchMock).toHaveBeenCalledWith("http://localhost:8000/api/auth/register", expect.objectContaining({
             method: "POST",
-            headers: expect.objectContaining({ Accept: "*/*" }),
+            headers: expect.objectContaining({ Accept: "application/json" }),
             credentials: "include",
         }));
         expect(result.email).toBe("new@example.com");
@@ -47,7 +47,7 @@ describe("fetch-backed api service", () => {
         fetchMock.mockResolvedValue(jsonResponse(200, user));
 
         const me = await api.auth.me();
-        expect(fetchMock).toHaveBeenCalledWith("/api/auth/me", expect.objectContaining({
+        expect(fetchMock).toHaveBeenCalledWith("http://localhost:8000/api/auth/me", expect.objectContaining({
             method: "GET",
         }));
         expect(me).toEqual(user);
