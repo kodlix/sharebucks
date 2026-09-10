@@ -29,9 +29,9 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE = typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_BASE_URL
-  ? import.meta.env.VITE_API_BASE_URL
-  : "http://localhost:8000";
+const API_BASE = typeof import.meta !== "undefined" && import.meta.env && import.meta.env["VITE_API_BASE_URL"]
+  ? import.meta.env["VITE_API_BASE_URL"]
+  : "";
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T | null> {
   const url = `${API_BASE}${path}`;
@@ -40,7 +40,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      Accept: "application/json",
+      Accept: "*/*",
     },
   };
 
