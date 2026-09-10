@@ -79,7 +79,7 @@ function GroupPage() {
           <span className="inline-flex items-center gap-1">
             {group.visibility === "public" ? <Globe className="size-3" /> : <Lock className="size-3" />} {group.visibility} · {group.currency}
             {group.is_archived && " · archived"}
-          </span> as unknown as string
+          </span>
         }
         title={group.name}
         description={group.description}

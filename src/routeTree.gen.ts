@@ -17,6 +17,10 @@ import { Route as AuthenticatedJoinRouteImport } from './routes/_authenticated/j
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedGroupsIndexRouteImport } from './routes/_authenticated/groups/index'
 import { Route as AuthenticatedGroupsDiscoverRouteImport } from './routes/_authenticated/groups/discover'
+import { Route as AuthenticatedGroupsGroupIdIndexRouteImport } from './routes/_authenticated/groups/$groupId/index'
+import { Route as AuthenticatedGroupsGroupIdExpensesNewRouteImport } from './routes/_authenticated/groups/$groupId/expenses/new'
+import { Route as AuthenticatedGroupsGroupIdExpensesExpenseIdIndexRouteImport } from './routes/_authenticated/groups/$groupId/expenses/$expenseId/index'
+import { Route as AuthenticatedGroupsGroupIdExpensesExpenseIdEditRouteImport } from './routes/_authenticated/groups/$groupId/expenses/$expenseId/edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -59,6 +63,30 @@ const AuthenticatedGroupsDiscoverRoute =
     path: '/groups/discover',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedGroupsGroupIdIndexRoute =
+  AuthenticatedGroupsGroupIdIndexRouteImport.update({
+    id: '/groups/$groupId/',
+    path: '/groups/$groupId/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedGroupsGroupIdExpensesNewRoute =
+  AuthenticatedGroupsGroupIdExpensesNewRouteImport.update({
+    id: '/groups/$groupId/expenses/new',
+    path: '/groups/$groupId/expenses/new',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedGroupsGroupIdExpensesExpenseIdIndexRoute =
+  AuthenticatedGroupsGroupIdExpensesExpenseIdIndexRouteImport.update({
+    id: '/groups/$groupId/expenses/$expenseId/',
+    path: '/groups/$groupId/expenses/$expenseId/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedGroupsGroupIdExpensesExpenseIdEditRoute =
+  AuthenticatedGroupsGroupIdExpensesExpenseIdEditRouteImport.update({
+    id: '/groups/$groupId/expenses/$expenseId/edit',
+    path: '/groups/$groupId/expenses/$expenseId/edit',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +96,10 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/groups/discover': typeof AuthenticatedGroupsDiscoverRoute
   '/groups/': typeof AuthenticatedGroupsIndexRoute
+  '/groups/$groupId/': typeof AuthenticatedGroupsGroupIdIndexRoute
+  '/groups/$groupId/expenses/new': typeof AuthenticatedGroupsGroupIdExpensesNewRoute
+  '/groups/$groupId/expenses/$expenseId/edit': typeof AuthenticatedGroupsGroupIdExpensesExpenseIdEditRoute
+  '/groups/$groupId/expenses/$expenseId/': typeof AuthenticatedGroupsGroupIdExpensesExpenseIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -77,6 +109,10 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/groups/discover': typeof AuthenticatedGroupsDiscoverRoute
   '/groups': typeof AuthenticatedGroupsIndexRoute
+  '/groups/$groupId': typeof AuthenticatedGroupsGroupIdIndexRoute
+  '/groups/$groupId/expenses/new': typeof AuthenticatedGroupsGroupIdExpensesNewRoute
+  '/groups/$groupId/expenses/$expenseId/edit': typeof AuthenticatedGroupsGroupIdExpensesExpenseIdEditRoute
+  '/groups/$groupId/expenses/$expenseId': typeof AuthenticatedGroupsGroupIdExpensesExpenseIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -88,6 +124,10 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/groups/discover': typeof AuthenticatedGroupsDiscoverRoute
   '/_authenticated/groups/': typeof AuthenticatedGroupsIndexRoute
+  '/_authenticated/groups/$groupId/': typeof AuthenticatedGroupsGroupIdIndexRoute
+  '/_authenticated/groups/$groupId/expenses/new': typeof AuthenticatedGroupsGroupIdExpensesNewRoute
+  '/_authenticated/groups/$groupId/expenses/$expenseId/edit': typeof AuthenticatedGroupsGroupIdExpensesExpenseIdEditRoute
+  '/_authenticated/groups/$groupId/expenses/$expenseId/': typeof AuthenticatedGroupsGroupIdExpensesExpenseIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -99,6 +139,10 @@ export interface FileRouteTypes {
     | '/profile'
     | '/groups/discover'
     | '/groups/'
+    | '/groups/$groupId/'
+    | '/groups/$groupId/expenses/new'
+    | '/groups/$groupId/expenses/$expenseId/edit'
+    | '/groups/$groupId/expenses/$expenseId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -108,6 +152,10 @@ export interface FileRouteTypes {
     | '/profile'
     | '/groups/discover'
     | '/groups'
+    | '/groups/$groupId'
+    | '/groups/$groupId/expenses/new'
+    | '/groups/$groupId/expenses/$expenseId/edit'
+    | '/groups/$groupId/expenses/$expenseId'
   id:
     | '__root__'
     | '/'
@@ -118,6 +166,10 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/groups/discover'
     | '/_authenticated/groups/'
+    | '/_authenticated/groups/$groupId/'
+    | '/_authenticated/groups/$groupId/expenses/new'
+    | '/_authenticated/groups/$groupId/expenses/$expenseId/edit'
+    | '/_authenticated/groups/$groupId/expenses/$expenseId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -184,6 +236,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGroupsDiscoverRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/groups/$groupId/': {
+      id: '/_authenticated/groups/$groupId/'
+      path: '/groups/$groupId'
+      fullPath: '/groups/$groupId/'
+      preLoaderRoute: typeof AuthenticatedGroupsGroupIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/groups/$groupId/expenses/new': {
+      id: '/_authenticated/groups/$groupId/expenses/new'
+      path: '/groups/$groupId/expenses/new'
+      fullPath: '/groups/$groupId/expenses/new'
+      preLoaderRoute: typeof AuthenticatedGroupsGroupIdExpensesNewRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/groups/$groupId/expenses/$expenseId/': {
+      id: '/_authenticated/groups/$groupId/expenses/$expenseId/'
+      path: '/groups/$groupId/expenses/$expenseId'
+      fullPath: '/groups/$groupId/expenses/$expenseId/'
+      preLoaderRoute: typeof AuthenticatedGroupsGroupIdExpensesExpenseIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/groups/$groupId/expenses/$expenseId/edit': {
+      id: '/_authenticated/groups/$groupId/expenses/$expenseId/edit'
+      path: '/groups/$groupId/expenses/$expenseId/edit'
+      fullPath: '/groups/$groupId/expenses/$expenseId/edit'
+      preLoaderRoute: typeof AuthenticatedGroupsGroupIdExpensesExpenseIdEditRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -193,6 +273,10 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedGroupsDiscoverRoute: typeof AuthenticatedGroupsDiscoverRoute
   AuthenticatedGroupsIndexRoute: typeof AuthenticatedGroupsIndexRoute
+  AuthenticatedGroupsGroupIdIndexRoute: typeof AuthenticatedGroupsGroupIdIndexRoute
+  AuthenticatedGroupsGroupIdExpensesNewRoute: typeof AuthenticatedGroupsGroupIdExpensesNewRoute
+  AuthenticatedGroupsGroupIdExpensesExpenseIdEditRoute: typeof AuthenticatedGroupsGroupIdExpensesExpenseIdEditRoute
+  AuthenticatedGroupsGroupIdExpensesExpenseIdIndexRoute: typeof AuthenticatedGroupsGroupIdExpensesExpenseIdIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -201,6 +285,13 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedGroupsDiscoverRoute: AuthenticatedGroupsDiscoverRoute,
   AuthenticatedGroupsIndexRoute: AuthenticatedGroupsIndexRoute,
+  AuthenticatedGroupsGroupIdIndexRoute: AuthenticatedGroupsGroupIdIndexRoute,
+  AuthenticatedGroupsGroupIdExpensesNewRoute:
+    AuthenticatedGroupsGroupIdExpensesNewRoute,
+  AuthenticatedGroupsGroupIdExpensesExpenseIdEditRoute:
+    AuthenticatedGroupsGroupIdExpensesExpenseIdEditRoute,
+  AuthenticatedGroupsGroupIdExpensesExpenseIdIndexRoute:
+    AuthenticatedGroupsGroupIdExpensesExpenseIdIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
