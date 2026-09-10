@@ -62,6 +62,13 @@ def session_user(request: Request) -> Optional[str]:
     return None
 
 
+def session_cookie_secure(request: Request) -> bool:
+    # Browsers only retain cross-origin SameSite=None cookies when Secure is on.
+    # TestClient/curl process the API without an Origin header, so keep the cookie
+    # readable in the in-process HTTP contract by emitting Secure=False there.
+    return request.headers.get("origin") is not None
+
+
 def group_from_context(group_id: str) -> Optional[Dict[str, Any]]:
     return db.groups.get(group_id)
 
@@ -120,7 +127,7 @@ def health() -> Dict[str, str]:
 
 
 @app.post("/api/auth/register", response_model=User, tags=["Auth"])
-def register(payload: RegisterInput, response: Response) -> Dict[str, Any]:
+def register(payload: RegisterInput, response: Response, request: Request) -> Dict[str, Any]:
     email = payload.email.lower()
     for user in db.users.values():
         if user["email"].lower() == email:
@@ -136,7 +143,7 @@ def register(payload: RegisterInput, response: Response) -> Dict[str, Any]:
     }
     db.users[user_id] = user
     db.current_user_id = user_id
-    response.set_cookie(key="session", value=user_id, httponly=True, samesite="none")
+    response.set_cookie(key="session", value=user_id, httponly=True, samesite="none", secure=session_cookie_secure(request))
     return response_user(user)
 
 
@@ -151,7 +158,7 @@ def login(payload: LoginInput, response: Response, request: Request) -> Dict[str
     if not user:
         raise HTTPException(status_code=401, detail={"error": {"message": "Incorrect email or password", "status": 401}})
     db.current_user_id = user["id"]
-    response.set_cookie(key="session", value=user["id"], httponly=True, samesite="none")
+    response.set_cookie(key="session", value=user["id"], httponly=True, samesite="none", secure=session_cookie_secure(request))
     return response_user(user)
 
 

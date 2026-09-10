@@ -40,6 +40,21 @@ const registerSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>;
 type RegisterValues = z.infer<typeof registerSchema>;
 
+function normalizeRedirectPath(redirect?: string): string {
+  if (!redirect) return "/dashboard";
+
+  try {
+    const url = new URL(redirect, window.location.origin);
+    if (url.origin === window.location.origin) {
+      return `${url.pathname}${url.search}${url.hash}` || "/dashboard";
+    }
+  } catch {
+    // Treat a plain route string as already relative.
+  }
+
+  return redirect.startsWith("/") ? redirect : "/dashboard";
+}
+
 function AuthPage() {
   const { redirect, mode } = Route.useSearch();
   const navigate = useNavigate();
@@ -48,14 +63,14 @@ function AuthPage() {
 
   useEffect(() => {
     api.auth.me().then((u) => {
-      if (u) navigate({ to: redirect ?? "/dashboard", replace: true });
+      if (u) navigate({ to: normalizeRedirectPath(redirect), replace: true });
     });
   }, [navigate, redirect]);
 
   function onSignedIn() {
     qc.removeQueries({ queryKey: keys.me });
     qc.prefetchQuery(meQuery);
-    navigate({ to: redirect ?? "/dashboard", replace: true });
+    navigate({ to: normalizeRedirectPath(redirect), replace: true });
   }
 
   const login = useForm<LoginValues>({
