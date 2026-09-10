@@ -1,4 +1,4 @@
-openapi: 3.0.0
+openapi: 3.2.0
 info:
   title: ShareBucks API
   version: 1.0.0
@@ -23,17 +23,17 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RegisterInput'
+              $ref: "#/components/schemas/RegisterInput"
       responses:
-        '200':
+        "200":
           description: Registered user
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '409':
+                $ref: "#/components/schemas/User"
+        "409":
           description: Email already registered
-        '422':
+        "422":
           description: Validation error
 
   /api/auth/login:
@@ -45,15 +45,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginInput'
+              $ref: "#/components/schemas/LoginInput"
       responses:
-        '200':
+        "200":
           description: Authenticated user
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '401':
+                $ref: "#/components/schemas/User"
+        "401":
           description: Incorrect email or password
 
   /api/auth/logout:
@@ -61,7 +61,7 @@ paths:
       tags: [Auth]
       summary: Log out the current user
       responses:
-        '204':
+        "204":
           description: Logged out
 
   /api/auth/me:
@@ -69,29 +69,29 @@ paths:
       tags: [Auth]
       summary: Get the current logged-in user
       responses:
-        '200':
+        "200":
           description: Current logged-in user or null
           content:
             application/json:
               schema:
                 oneOf:
-                  - $ref: '#/components/schemas/User'
-                  - type: 'null'
+                  - $ref: "#/components/schemas/User"
+                  - type: "null"
 
   /api/groups:
     get:
       tags: [Groups]
       summary: List groups that the current user belongs to
       responses:
-        '200':
+        "200":
           description: Group summaries
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/GroupSummary'
-        '401':
+                  $ref: "#/components/schemas/GroupSummary"
+        "401":
           description: Authentication required
     post:
       tags: [Groups]
@@ -101,17 +101,17 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateGroupInput'
+              $ref: "#/components/schemas/CreateGroupInput"
       responses:
-        '200':
+        "200":
           description: Created group detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GroupDetail'
-        '401':
+                $ref: "#/components/schemas/GroupDetail"
+        "401":
           description: Authentication required
-        '422':
+        "422":
           description: Validation error
 
   /api/groups/{group_id}:
@@ -119,41 +119,41 @@ paths:
       tags: [Groups]
       summary: Fetch group detail by id
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       responses:
-        '200':
+        "200":
           description: Group detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GroupDetail'
-        '403':
+                $ref: "#/components/schemas/GroupDetail"
+        "403":
           description: Not an active member
-        '404':
+        "404":
           description: Group not found
     patch:
       tags: [Groups]
       summary: Update a group
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateGroupInput'
+              $ref: "#/components/schemas/UpdateGroupInput"
       responses:
-        '200':
+        "200":
           description: Updated group detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GroupDetail'
-        '403':
+                $ref: "#/components/schemas/GroupDetail"
+        "403":
           description: Only admin may edit
-        '409':
+        "409":
           description: Archived group cannot be edited
-        '422':
+        "422":
           description: Validation error
 
   /api/groups/{group_id}/archive:
@@ -161,15 +161,15 @@ paths:
       tags: [Groups]
       summary: Archive a group
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       responses:
-        '200':
+        "200":
           description: Archived group detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GroupDetail'
-        '403':
+                $ref: "#/components/schemas/GroupDetail"
+        "403":
           description: Only admin may archive
 
   /api/groups/{group_id}/leave:
@@ -177,11 +177,11 @@ paths:
       tags: [Groups]
       summary: Leave a group
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       responses:
-        '204':
+        "204":
           description: Left group
-        '409':
+        "409":
           description: Admin cannot leave; settle debt first
 
   /api/groups/{group_id}/members:
@@ -189,31 +189,31 @@ paths:
       tags: [Groups]
       summary: List group members
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       responses:
-        '200':
+        "200":
           description: Members of the group
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/GroupMember'
+                  $ref: "#/components/schemas/GroupMember"
 
   /api/groups/{group_id}/invites:
     post:
       tags: [Groups]
       summary: Create an invite code for a group
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       responses:
-        '200':
+        "200":
           description: Created invite
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GroupInvite'
-        '409':
+                $ref: "#/components/schemas/GroupInvite"
+        "409":
           description: Archived groups accept no new members
 
   /api/groups/{group_id}/join:
@@ -221,7 +221,7 @@ paths:
       tags: [Groups]
       summary: Join a public group or a private group via invite code
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       requestBody:
         required: false
         content:
@@ -233,15 +233,15 @@ paths:
                   type: string
                   description: Optional invitation code for a private group
       responses:
-        '200':
+        "200":
           description: Joined group detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GroupDetail'
-        '403':
+                $ref: "#/components/schemas/GroupDetail"
+        "403":
           description: Private group requires invitation code
-        '409':
+        "409":
           description: Already a member or archived group
 
   /api/groups/{group_id}/members/{user_id}:
@@ -249,14 +249,14 @@ paths:
       tags: [Groups]
       summary: Remove an active member from a group
       parameters:
-        - $ref: '#/components/parameters/GroupId'
-        - $ref: '#/components/parameters/UserId'
+        - $ref: "#/components/parameters/GroupId"
+        - $ref: "#/components/parameters/UserId"
       responses:
-        '204':
+        "204":
           description: Member removed
-        '403':
+        "403":
           description: Admin-only action
-        '404':
+        "404":
           description: Member not found
 
   /api/groups/discover:
@@ -271,21 +271,21 @@ paths:
             type: string
           description: Optional search term
       responses:
-        '200':
+        "200":
           description: Public discover groups
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/DiscoverGroup'
+                  $ref: "#/components/schemas/DiscoverGroup"
 
   /api/groups/{group_id}/categories:
     post:
       tags: [Groups]
       summary: Create a custom category for a group
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       requestBody:
         required: true
         content:
@@ -297,15 +297,15 @@ paths:
                 name:
                   type: string
       responses:
-        '200':
+        "200":
           description: Created category
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Category'
-        '409':
+                $ref: "#/components/schemas/Category"
+        "409":
           description: Duplicate category name
-        '422':
+        "422":
           description: Empty category name
 
   /api/groups/{group_id}/expenses:
@@ -313,37 +313,37 @@ paths:
       tags: [Expenses]
       summary: List expenses in a group
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       responses:
-        '200':
+        "200":
           description: Expense list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Expense'
+                  $ref: "#/components/schemas/Expense"
     post:
       tags: [Expenses]
       summary: Create an expense
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ExpenseInput'
+              $ref: "#/components/schemas/ExpenseInput"
       responses:
-        '200':
+        "200":
           description: Created expense
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Expense'
-        '409':
+                $ref: "#/components/schemas/Expense"
+        "409":
           description: Archived group cannot accept expenses
-        '422':
+        "422":
           description: Validation error
 
   /api/groups/{group_id}/expenses/{expense_id}:
@@ -351,54 +351,54 @@ paths:
       tags: [Expenses]
       summary: Fetch one expense
       parameters:
-        - $ref: '#/components/parameters/GroupId'
-        - $ref: '#/components/parameters/ExpenseId'
+        - $ref: "#/components/parameters/GroupId"
+        - $ref: "#/components/parameters/ExpenseId"
       responses:
-        '200':
+        "200":
           description: Expense detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Expense'
-        '404':
+                $ref: "#/components/schemas/Expense"
+        "404":
           description: Expense not found
     patch:
       tags: [Expenses]
       summary: Update an expense
       parameters:
-        - $ref: '#/components/parameters/GroupId'
-        - $ref: '#/components/parameters/ExpenseId'
+        - $ref: "#/components/parameters/GroupId"
+        - $ref: "#/components/parameters/ExpenseId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ExpenseInput'
+              $ref: "#/components/schemas/ExpenseInput"
       responses:
-        '200':
+        "200":
           description: Updated expense
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Expense'
-        '403':
+                $ref: "#/components/schemas/Expense"
+        "403":
           description: Only creator can edit
-        '409':
+        "409":
           description: Archived group cannot be changed
-        '422':
+        "422":
           description: Validation error
     delete:
       tags: [Expenses]
       summary: Delete an expense
       parameters:
-        - $ref: '#/components/parameters/GroupId'
-        - $ref: '#/components/parameters/ExpenseId'
+        - $ref: "#/components/parameters/GroupId"
+        - $ref: "#/components/parameters/ExpenseId"
       responses:
-        '204':
+        "204":
           description: Expense deleted
-        '403':
+        "403":
           description: Only creator can delete
-        '409':
+        "409":
           description: Archived group cannot be changed
 
   /api/groups/{group_id}/balances:
@@ -406,69 +406,69 @@ paths:
       tags: [Balances]
       summary: Fetch member balances for a group
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       responses:
-        '200':
+        "200":
           description: Member balance list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/MemberBalance'
+                  $ref: "#/components/schemas/MemberBalance"
 
   /api/groups/{group_id}/settlements/suggestions:
     get:
       tags: [Settlements]
       summary: Suggest settlement transfers
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       responses:
-        '200':
+        "200":
           description: Settlement suggestions
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/SettlementSuggestion'
+                  $ref: "#/components/schemas/SettlementSuggestion"
 
   /api/groups/{group_id}/settlements:
     get:
       tags: [Settlements]
       summary: List recorded settlements for a group
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       responses:
-        '200':
+        "200":
           description: Recorded settlements
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Settlement'
+                  $ref: "#/components/schemas/Settlement"
     post:
       tags: [Settlements]
       summary: Record a settlement between members
       parameters:
-        - $ref: '#/components/parameters/GroupId'
+        - $ref: "#/components/parameters/GroupId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SettlementInput'
+              $ref: "#/components/schemas/SettlementInput"
       responses:
-        '200':
+        "200":
           description: Created settlement
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Settlement'
-        '409':
+                $ref: "#/components/schemas/Settlement"
+        "409":
           description: Archived group cannot record settlements
-        '422':
+        "422":
           description: Validation or rule error
 
   /api/dashboard:
@@ -476,12 +476,12 @@ paths:
       tags: [Dashboard]
       summary: Fetch dashboard summary for the authenticated user
       responses:
-        '200':
+        "200":
           description: Dashboard data
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DashboardData'
+                $ref: "#/components/schemas/DashboardData"
 
 components:
   securitySchemes:
@@ -531,7 +531,18 @@ components:
 
     Group:
       type: object
-      required: [id, name, description, visibility, currency, created_by, is_archived, created_at, updated_at]
+      required:
+        [
+          id,
+          name,
+          description,
+          visibility,
+          currency,
+          created_by,
+          is_archived,
+          created_at,
+          updated_at,
+        ]
       properties:
         id:
           type: string
@@ -544,7 +555,7 @@ components:
           enum: [private, public]
         currency:
           type: string
-          pattern: '^[A-Z]{3}$'
+          pattern: "^[A-Z]{3}$"
         created_by:
           type: string
         is_archived:
@@ -580,7 +591,7 @@ components:
           format: date-time
           nullable: true
         user:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
 
     GroupInvite:
       type: object
@@ -633,7 +644,23 @@ components:
 
     Expense:
       type: object
-      required: [id, group_id, created_by, payer_id, category_id, title, amount, expense_date, notes, created_at, updated_at, shares, payer, category]
+      required:
+        [
+          id,
+          group_id,
+          created_by,
+          payer_id,
+          category_id,
+          title,
+          amount,
+          expense_date,
+          notes,
+          created_at,
+          updated_at,
+          shares,
+          payer,
+          category,
+        ]
       properties:
         id:
           type: string
@@ -663,15 +690,27 @@ components:
         shares:
           type: array
           items:
-            $ref: '#/components/schemas/ExpenseShare'
+            $ref: "#/components/schemas/ExpenseShare"
         payer:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
         category:
-          $ref: '#/components/schemas/Category'
+          $ref: "#/components/schemas/Category"
 
     Settlement:
       type: object
-      required: [id, group_id, payer_id, recipient_id, amount, settlement_date, note, created_at, payer, recipient]
+      required:
+        [
+          id,
+          group_id,
+          payer_id,
+          recipient_id,
+          amount,
+          settlement_date,
+          note,
+          created_at,
+          payer,
+          recipient,
+        ]
       properties:
         id:
           type: string
@@ -692,9 +731,9 @@ components:
           type: string
           format: date-time
         payer:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
         recipient:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
 
     MemberBalance:
       type: object
@@ -703,7 +742,7 @@ components:
         user_id:
           type: string
         user:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
         status:
           type: string
           enum: [active, inactive]
@@ -723,15 +762,15 @@ components:
         recipient_id:
           type: string
         payer:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
         recipient:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
         amount:
           type: integer
 
     GroupSummary:
       allOf:
-        - $ref: '#/components/schemas/Group'
+        - $ref: "#/components/schemas/Group"
         - type: object
           required: [role, member_count, my_balance, total_spent]
           properties:
@@ -747,7 +786,7 @@ components:
 
     GroupDetail:
       allOf:
-        - $ref: '#/components/schemas/Group'
+        - $ref: "#/components/schemas/Group"
         - type: object
           required: [role, members, categories]
           properties:
@@ -757,15 +796,15 @@ components:
             members:
               type: array
               items:
-                $ref: '#/components/schemas/GroupMember'
+                $ref: "#/components/schemas/GroupMember"
             categories:
               type: array
               items:
-                $ref: '#/components/schemas/Category'
+                $ref: "#/components/schemas/Category"
 
     DiscoverGroup:
       allOf:
-        - $ref: '#/components/schemas/Group'
+        - $ref: "#/components/schemas/Group"
         - type: object
           required: [member_count, is_member]
           properties:
@@ -781,7 +820,7 @@ components:
         groups:
           type: array
           items:
-            $ref: '#/components/schemas/GroupSummary'
+            $ref: "#/components/schemas/GroupSummary"
         totals:
           type: object
           required: [owed, receivable, net, outstanding_settlements]
@@ -797,11 +836,11 @@ components:
         recent_expenses:
           type: array
           items:
-            $ref: '#/components/schemas/Expense'
+            $ref: "#/components/schemas/Expense"
         recent_settlements:
           type: array
           items:
-            $ref: '#/components/schemas/Settlement'
+            $ref: "#/components/schemas/Settlement"
         spending:
           type: object
           required: [total, this_month, last_month, by_category, by_month]
@@ -871,7 +910,7 @@ components:
           enum: [private, public]
         currency:
           type: string
-          pattern: '^[A-Z]{3}$'
+          pattern: "^[A-Z]{3}$"
 
     UpdateGroupInput:
       type: object
@@ -885,11 +924,12 @@ components:
           enum: [private, public]
         currency:
           type: string
-          pattern: '^[A-Z]{3}$'
+          pattern: "^[A-Z]{3}$"
 
     ExpenseInput:
       type: object
-      required: [title, amount, category_id, payer_id, expense_date, notes, shares]
+      required:
+        [title, amount, category_id, payer_id, expense_date, notes, shares]
       properties:
         title:
           type: string
@@ -907,7 +947,7 @@ components:
         shares:
           type: array
           items:
-            $ref: '#/components/schemas/ShareInput'
+            $ref: "#/components/schemas/ShareInput"
 
     ShareInput:
       type: object
