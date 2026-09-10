@@ -15,6 +15,22 @@ The app is organized around groups, members, expenses, balances, and settlement 
 
 ## Local development
 
+The repository also ships with a top-level `Makefile` that wraps the most common install, build, test, and run commands.
+
+```sh
+make help
+make backend-install
+make backend-test
+make backend-run
+make frontend-install
+make frontend-build
+make frontend-run
+make all-tests
+make all-run
+```
+
+Use `make help` to see the supported task names, or run the commands directly from the corresponding folders.
+
 ### Frontend
 
 ```sh
