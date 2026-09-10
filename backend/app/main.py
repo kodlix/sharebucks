@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 
-from app.mock_db import db
+from app.store import db
 from app.models import (
     RegisterInput,
     LoginInput,
@@ -164,8 +164,15 @@ def login(payload: LoginInput, response: Response, request: Request) -> Dict[str
 
 @app.post("/api/auth/logout", tags=["Auth"])
 def logout(response: Response, request: Request) -> Response:
-    response.delete_cookie("session")
-    return Response(status_code=204)
+    response.delete_cookie(
+        "session",
+        path="/",
+        httponly=True,
+        samesite="none",
+        secure=session_cookie_secure(request),
+    )
+    response.status_code = 204
+    return response
 
 
 @app.get("/api/auth/me", tags=["Auth"])
