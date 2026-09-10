@@ -38,7 +38,7 @@ function DashboardPage() {
     <>
       <PageHeader
         eyebrow={greeting}
-        title={user.display_name.split(" ")[0]}
+        title={user.display_name.split(" ")[0] ?? user.display_name}
         description="Here's where things stand across your groups."
         actions={
           <Button asChild>
@@ -213,6 +213,6 @@ function mostCommon(list: string[]): string | undefined {
 }
 
 function monthLabel(key: string): string {
-  const [y, m] = key.split("-").map(Number);
+  const [y = 0, m = 1] = key.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "short" });
 }

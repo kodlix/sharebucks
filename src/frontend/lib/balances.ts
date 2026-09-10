@@ -67,8 +67,8 @@ export function suggestSettlements(
   let i = 0;
   let j = 0;
   while (i < debtors.length && j < creditors.length) {
-    const d = debtors[i];
-    const c = creditors[j];
+    const d = debtors[i]!;
+    const c = creditors[j]!;
     const amount = Math.min(d.amount, c.amount);
     if (amount > 0) result.push({ payer_id: d.id, recipient_id: c.id, amount });
     d.amount -= amount;

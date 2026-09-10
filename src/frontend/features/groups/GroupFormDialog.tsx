@@ -25,7 +25,7 @@ export function GroupFormDialog({
   title,
 }: {
   trigger: ReactNode;
-  initial?: Group;
+  initial?: Group | undefined;
   onSubmit: (input: CreateGroupInput) => Promise<unknown>;
   pending: boolean;
   title: string;

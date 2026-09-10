@@ -201,7 +201,7 @@ function seed(): DB {
       updated_at: ts,
     });
     const amounts = custom ?? splitEqually(amount, participants.length);
-    participants.forEach((p, i) => shares.push({ id: uid("s"), expense_id: id, user_id: p, amount: amounts[i] }));
+    participants.forEach((p, i) => shares.push({ id: uid("s"), expense_id: id, user_id: p, amount: amounts[i] ?? 0 }));
   };
   const lisbon = ["u_demo", "u_maya", "u_liam", "u_sofia"];
   addExpense("g_lisbon", "u_demo", "Airbnb — 3 nights", 48000, "accommodation", daysAgo(12), lisbon);
