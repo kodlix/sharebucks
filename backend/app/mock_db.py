@@ -14,13 +14,15 @@ class MockDB:
         self.current_user_id = "u1"
         self.users["u1"] = {
             "id": "u1",
-            "email": "demo@example.com",
+            "email": "demo@sharebucks.app",
+            "password": "password123",
             "display_name": "Demo User",
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         self.users["u2"] = {
             "id": "u2",
             "email": "friend@example.com",
+            "password": "secret123",
             "display_name": "Friend",
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
