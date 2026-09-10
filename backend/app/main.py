@@ -134,7 +134,7 @@ def register(payload: RegisterInput, response: Response) -> Dict[str, Any]:
     }
     db.users[user_id] = user
     db.current_user_id = user_id
-    response.set_cookie(key="session", value=user_id, httponly=True, samesite="none", secure=True)
+    response.set_cookie(key="session", value=user_id, httponly=True, samesite="none")
     return response_user(user)
 
 
@@ -149,7 +149,7 @@ def login(payload: LoginInput, response: Response, request: Request) -> Dict[str
     if not user:
         raise HTTPException(status_code=401, detail={"error": {"message": "Incorrect email or password", "status": 401}})
     db.current_user_id = user["id"]
-    response.set_cookie(key="session", value=user["id"], httponly=True, samesite="none", secure=True)
+    response.set_cookie(key="session", value=user["id"], httponly=True, samesite="none")
     return response_user(user)
 
 
