@@ -98,12 +98,12 @@ def expense_to_response(expense: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
-@app.get("/health")
+@app.get("/health", tags=["Health"])
 def health() -> Dict[str, str]:
     return {"status": "ok"}
 
 
-@app.post("/api/auth/register", response_model=User)
+@app.post("/api/auth/register", response_model=User, tags=["Auth"])
 def register(payload: RegisterInput, response: Response) -> Dict[str, Any]:
     email = payload.email.lower()
     for user in db.users.values():
@@ -124,7 +124,7 @@ def register(payload: RegisterInput, response: Response) -> Dict[str, Any]:
     return response_user(user)
 
 
-@app.post("/api/auth/login")
+@app.post("/api/auth/login", tags=["Auth"])
 def login(payload: LoginInput, response: Response, request: Request) -> Dict[str, Any]:
     email = payload.email.lower()
     user = None
@@ -139,13 +139,13 @@ def login(payload: LoginInput, response: Response, request: Request) -> Dict[str
     return response_user(user)
 
 
-@app.post("/api/auth/logout")
+@app.post("/api/auth/logout", tags=["Auth"])
 def logout(response: Response, request: Request) -> Response:
     response.delete_cookie("session")
     return Response(status_code=204)
 
 
-@app.get("/api/auth/me")
+@app.get("/api/auth/me", tags=["Auth"])
 def me(request: Request) -> Any:
     session = session_user(request)
     if not session:
@@ -156,7 +156,7 @@ def me(request: Request) -> Any:
     return response_user(user)
 
 
-@app.get("/api/groups")
+@app.get("/api/groups", tags=["Groups"])
 def list_groups(request: Request) -> List[Dict[str, Any]]:
     user_id = session_user(request)
     if not user_id:
@@ -176,7 +176,7 @@ def list_groups(request: Request) -> List[Dict[str, Any]]:
     return groups
 
 
-@app.post("/api/groups")
+@app.post("/api/groups", tags=["Groups"])
 def create_group(payload: CreateGroupInput, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
@@ -220,7 +220,7 @@ def create_group(payload: CreateGroupInput, request: Request) -> Dict[str, Any]:
     }
 
 
-@app.get("/api/groups/discover")
+@app.get("/api/groups/discover", tags=["Groups"])
 def discover_groups(request: Request, search: Optional[str] = None) -> List[Dict[str, Any]]:
     q = (search or "").lower()
     out = []
@@ -238,7 +238,7 @@ def discover_groups(request: Request, search: Optional[str] = None) -> List[Dict
     return out
 
 
-@app.get("/api/groups/{group_id}")
+@app.get("/api/groups/{group_id}", tags=["Groups"])
 def get_group(group_id: str, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
@@ -257,7 +257,7 @@ def get_group(group_id: str, request: Request) -> Dict[str, Any]:
     }
 
 
-@app.patch("/api/groups/{group_id}")
+@app.patch("/api/groups/{group_id}", tags=["Groups"])
 def update_group(group_id: str, payload: UpdateGroupInput, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
@@ -287,7 +287,7 @@ def update_group(group_id: str, payload: UpdateGroupInput, request: Request) -> 
     }
 
 
-@app.post("/api/groups/{group_id}/archive")
+@app.post("/api/groups/{group_id}/archive", tags=["Groups"])
 def archive_group(group_id: str, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
@@ -302,7 +302,7 @@ def archive_group(group_id: str, request: Request) -> Dict[str, Any]:
     return {**group, "role": "admin", "members": group.get("members", []), "categories": group.get("categories", [])}
 
 
-@app.post("/api/groups/{group_id}/leave")
+@app.post("/api/groups/{group_id}/leave", tags=["Groups"])
 def leave_group(group_id: str, request: Request) -> Response:
     user_id = session_user(request)
     if not user_id:
@@ -316,7 +316,7 @@ def leave_group(group_id: str, request: Request) -> Response:
     return Response(status_code=204)
 
 
-@app.get("/api/groups/{group_id}/members")
+@app.get("/api/groups/{group_id}/members", tags=["Groups"])
 def list_members(group_id: str, request: Request) -> List[Dict[str, Any]]:
     user_id = session_user(request)
     if not user_id:
@@ -329,7 +329,7 @@ def list_members(group_id: str, request: Request) -> List[Dict[str, Any]]:
     return group.get("members", [])
 
 
-@app.post("/api/groups/{group_id}/invites")
+@app.post("/api/groups/{group_id}/invites", tags=["Groups"])
 def create_invite(group_id: str, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
@@ -353,7 +353,7 @@ def create_invite(group_id: str, request: Request) -> Dict[str, Any]:
     return invite
 
 
-@app.post("/api/groups/{group_id}/join")
+@app.post("/api/groups/{group_id}/join", tags=["Groups"])
 def join_group(group_id: str, request: Request, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
@@ -382,7 +382,7 @@ def join_group(group_id: str, request: Request, payload: Optional[Dict[str, Any]
     return {**group, "role": "member", "members": group.get("members", []), "categories": group.get("categories", [])}
 
 
-@app.delete("/api/groups/{group_id}/members/{user_id}")
+@app.delete("/api/groups/{group_id}/members/{user_id}", tags=["Groups"])
 def remove_member(group_id: str, user_id: str, request: Request) -> Response:
     current_user = session_user(request)
     if not current_user:
@@ -404,7 +404,7 @@ def remove_member(group_id: str, user_id: str, request: Request) -> Response:
     return Response(status_code=204)
 
 
-@app.post("/api/groups/{group_id}/categories")
+@app.post("/api/groups/{group_id}/categories", tags=["Groups"])
 def create_category(group_id: str, payload: Dict[str, str], request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
@@ -430,7 +430,7 @@ def create_category(group_id: str, payload: Dict[str, str], request: Request) ->
     return category
 
 
-@app.get("/api/groups/{group_id}/expenses")
+@app.get("/api/groups/{group_id}/expenses", tags=["Expenses"])
 def list_expenses(group_id: str, request: Request) -> List[Dict[str, Any]]:
     user_id = session_user(request)
     if not user_id:
@@ -447,7 +447,7 @@ def list_expenses(group_id: str, request: Request) -> List[Dict[str, Any]]:
     return out
 
 
-@app.post("/api/groups/{group_id}/expenses")
+@app.post("/api/groups/{group_id}/expenses", tags=["Expenses"])
 def create_expense(group_id: str, payload: ExpenseInput, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
@@ -494,7 +494,7 @@ def create_expense(group_id: str, payload: ExpenseInput, request: Request) -> Di
     return expense_to_response(expense)
 
 
-@app.get("/api/groups/{group_id}/expenses/{expense_id}")
+@app.get("/api/groups/{group_id}/expenses/{expense_id}", tags=["Expenses"])
 def get_expense(group_id: str, expense_id: str, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
@@ -507,7 +507,7 @@ def get_expense(group_id: str, expense_id: str, request: Request) -> Dict[str, A
     return expense_to_response(expense)
 
 
-@app.patch("/api/groups/{group_id}/expenses/{expense_id}")
+@app.patch("/api/groups/{group_id}/expenses/{expense_id}", tags=["Expenses"])
 def update_expense(group_id: str, expense_id: str, payload: ExpenseInput, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
@@ -536,7 +536,7 @@ def update_expense(group_id: str, expense_id: str, payload: ExpenseInput, reques
     return expense_to_response(expense)
 
 
-@app.delete("/api/groups/{group_id}/expenses/{expense_id}")
+@app.delete("/api/groups/{group_id}/expenses/{expense_id}", tags=["Expenses"])
 def delete_expense(group_id: str, expense_id: str, request: Request) -> Response:
     user_id = session_user(request)
     if not user_id:
@@ -553,7 +553,7 @@ def delete_expense(group_id: str, expense_id: str, request: Request) -> Response
     return Response(status_code=204)
 
 
-@app.get("/api/groups/{group_id}/balances")
+@app.get("/api/groups/{group_id}/balances", tags=["Balances"])
 def get_balances(group_id: str, request: Request) -> List[Dict[str, Any]]:
     user_id = session_user(request)
     if not user_id:
@@ -577,7 +577,7 @@ def get_balances(group_id: str, request: Request) -> List[Dict[str, Any]]:
     return rows
 
 
-@app.get("/api/groups/{group_id}/settlements/suggestions")
+@app.get("/api/groups/{group_id}/settlements/suggestions", tags=["Settlements"])
 def settlement_suggestions(group_id: str, request: Request) -> List[Dict[str, Any]]:
     user_id = session_user(request)
     if not user_id:
@@ -590,7 +590,7 @@ def settlement_suggestions(group_id: str, request: Request) -> List[Dict[str, An
     return []
 
 
-@app.get("/api/groups/{group_id}/settlements")
+@app.get("/api/groups/{group_id}/settlements", tags=["Settlements"])
 def list_settlements(group_id: str, request: Request) -> List[Dict[str, Any]]:
     user_id = session_user(request)
     if not user_id:
@@ -618,7 +618,7 @@ def settlement_to_response(settlement: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-@app.post("/api/groups/{group_id}/settlements")
+@app.post("/api/groups/{group_id}/settlements", tags=["Settlements"])
 def create_settlement(group_id: str, payload: SettlementInput, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
@@ -645,7 +645,7 @@ def create_settlement(group_id: str, payload: SettlementInput, request: Request)
     return settlement_to_response(settlement)
 
 
-@app.get("/api/dashboard")
+@app.get("/api/dashboard", tags=["Dashboard"])
 def dashboard(request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
