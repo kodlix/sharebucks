@@ -1,0 +1,22 @@
+Metadata-Version: 2.4
+Name: sharebucks-backend
+Version: 0.1.0
+Summary: A FastAPI mock backend for the ShareBucks OpenAPI contract
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi<1.0,>=0.115
+Requires-Dist: uvicorn[standard]<1.0,>=0.30
+Requires-Dist: pydantic[email]<3.0,>=2.9
+Requires-Dist: httpx<1.0,>=0.27
+Requires-Dist: pytest<9,>=8
+
+# ShareBucks FastAPI Backend
+
+This backend folder contains a FastAPI mock implementation that follows the generated OpenAPI contract in `openapi.yaml`.
+
+Run:
+
+```sh
+uv sync
+uv run uvicorn app.main:app --reload
+```

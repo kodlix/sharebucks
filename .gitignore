@@ -1,6 +1,9 @@
 # Dependencies and package manager folders
 node_modules/
 frontend/node_modules/
+backend/.venv/
+.venv/
+venv/
 
 # Build and output artifacts
 /dist/
@@ -15,6 +18,15 @@ frontend/.wrangler/
 .env
 .env.*
 !.env.example
+
+# Python and FastAPI backend artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # Editor and OS noise
 .vite/
