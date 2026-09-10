@@ -1,0 +1,15 @@
+{
+    "yaml.schemas": {
+        "file:///Users/johnsoniyida/.vscode/extensions/ms-azuretools.vscode-cosmosdb-0.36.2/skills/cosmosdb-nosql-query-generation/SKILL.md": [],
+        "https://spec.openapis.org/oas/3.0/schema/2024-10-31": "openapi.yaml"
+    },
+    "yaml.disableSchemaDetection": [
+        "openapi.yaml",
+        "**/.github/workflows/*.yml",
+        "**/.github/workflows/*.yaml",
+        "**/.gitea/workflows/*.yml",
+        "**/.gitea/workflows/*.yaml",
+        "**/.forgejo/workflows/*.yml",
+        "**/.forgejo/workflows/*.yaml"
+    ]
+}
