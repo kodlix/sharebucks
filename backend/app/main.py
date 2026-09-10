@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 
@@ -29,6 +30,19 @@ from app.models import (
 )
 
 app = FastAPI(title="ShareBucks API", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://192.168.1.200:8083",
+        "http://localhost:8083",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def now_iso() -> str:
@@ -120,7 +134,7 @@ def register(payload: RegisterInput, response: Response) -> Dict[str, Any]:
     }
     db.users[user_id] = user
     db.current_user_id = user_id
-    response.set_cookie(key="session", value=user_id, httponly=True)
+    response.set_cookie(key="session", value=user_id, httponly=True, samesite="none", secure=True)
     return response_user(user)
 
 
@@ -135,7 +149,7 @@ def login(payload: LoginInput, response: Response, request: Request) -> Dict[str
     if not user:
         raise HTTPException(status_code=401, detail={"error": {"message": "Incorrect email or password", "status": 401}})
     db.current_user_id = user["id"]
-    response.set_cookie(key="session", value=user["id"], httponly=True)
+    response.set_cookie(key="session", value=user["id"], httponly=True, samesite="none", secure=True)
     return response_user(user)
 
 
