@@ -1,11 +1,32 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.store import db
 
-client = TestClient(app)
+
+@pytest.fixture(autouse=True)
+def reset_store():
+    db.reset()
+    yield
+    db.reset()
 
 
-def test_register_and_me_round_trip():
+@pytest.fixture()
+def client():
+    with TestClient(app) as tc:
+        yield tc
+
+
+def test_sqlalchemy_store_seed_and_collection_access():
+    assert db.users.get("u1") is not None
+    assert db.users.get("u1")["email"] == "demo@sharebucks.app"
+    assert db.groups.get("g1") is not None
+    assert db.groups.get("g1")["name"] == "Trip Crew"
+    assert len(list(db.users.values())) >= 1
+
+
+def test_register_and_me_round_trip(client):
     payload = {
         "email": "test@example.com",
         "password": "secret123",
@@ -24,7 +45,13 @@ def test_register_and_me_round_trip():
     assert me["email"] == payload["email"]
 
 
-def test_create_and_list_groups():
+def test_create_and_list_groups(client):
+    client.post("/api/auth/register", json={
+        "email": "owner@example.com",
+        "password": "secret123",
+        "display_name": "Owner",
+    })
+
     payload = {
         "name": "Trip Crew",
         "description": "Summer trip",
@@ -45,7 +72,13 @@ def test_create_and_list_groups():
     assert any(item["name"] == payload["name"] for item in groups)
 
 
-def test_discover_groups_and_expenses():
+def test_discover_groups_and_expenses(client):
+    client.post("/api/auth/register", json={
+        "email": "owner2@example.com",
+        "password": "secret123",
+        "display_name": "Owner Two",
+    })
+
     discover_resp = client.get("/api/groups/discover?search=trip")
     assert discover_resp.status_code == 200
     discovered = discover_resp.json()
@@ -81,7 +114,13 @@ def test_discover_groups_and_expenses():
     assert any(item["title"] == "Dinner" for item in expenses)
 
 
-def test_balances_and_settlements_endpoints():
+def test_balances_and_settlements_endpoints(client):
+    client.post("/api/auth/register", json={
+        "email": "owner3@example.com",
+        "password": "secret123",
+        "display_name": "Owner Three",
+    })
+
     group_payload = {
         "name": "Balance Group",
         "description": "Settlement testing",
@@ -104,7 +143,7 @@ def test_balances_and_settlements_endpoints():
     assert isinstance(suggestions, list)
 
 
-def test_login_and_logout_endpoints():
+def test_login_and_logout_endpoints(client):
     payload = {
         "email": "login@example.com",
         "password": "secret123",
@@ -121,3 +160,7 @@ def test_login_and_logout_endpoints():
 
     logout_resp = client.post("/api/auth/logout")
     assert logout_resp.status_code == 204
+
+    me_after_logout = client.get("/api/auth/me")
+    assert me_after_logout.status_code == 200
+    assert me_after_logout.json() is None
