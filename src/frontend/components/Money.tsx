@@ -10,9 +10,9 @@ export function Money({
 }: {
   amount: number;
   currency: string;
-  signed?: boolean;
-  colored?: boolean;
-  className?: string;
+  signed?: boolean | undefined;
+  colored?: boolean | undefined;
+  className?: string | undefined;
 }) {
   return (
     <span

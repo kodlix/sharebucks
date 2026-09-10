@@ -22,9 +22,9 @@ export function SettleDialog({
   groupId: string;
   currency: string;
   balances: MemberBalance[];
-  defaultPayer?: string;
-  defaultRecipient?: string;
-  defaultAmount?: number;
+  defaultPayer?: string | undefined;
+  defaultRecipient?: string | undefined;
+  defaultAmount?: number | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const debtors = balances.filter((b) => b.net < 0);

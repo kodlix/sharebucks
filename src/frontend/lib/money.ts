@@ -6,7 +6,7 @@ export function minorUnitsPer(currency: string): number {
   return ZERO_DECIMAL.has(currency.toUpperCase()) ? 1 : 100;
 }
 
-export function formatMoney(minor: number, currency: string, opts?: { signed?: boolean }): string {
+export function formatMoney(minor: number, currency: string, opts?: { signed?: boolean | undefined }): string {
   const factor = minorUnitsPer(currency);
   const value = minor / factor;
   const formatted = new Intl.NumberFormat("en-US", {

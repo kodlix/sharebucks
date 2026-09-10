@@ -6,10 +6,10 @@ export function PageHeader({
   description,
   actions,
 }: {
-  eyebrow?: ReactNode;
+  eyebrow?: ReactNode | undefined;
   title: string;
-  description?: ReactNode;
-  actions?: ReactNode;
+  description?: ReactNode | undefined;
+  actions?: ReactNode | undefined;
 }) {
   return (
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -41,8 +41,8 @@ export function StatCard({
 }: {
   label: string;
   value: ReactNode;
-  hint?: ReactNode;
-  tone?: "positive" | "negative" | "neutral";
+  hint?: ReactNode | undefined;
+  tone?: "positive" | "negative" | "neutral" | undefined;
 }) {
   const toneClass =
     tone === "positive" ? "text-positive" : tone === "negative" ? "text-negative" : "text-foreground";

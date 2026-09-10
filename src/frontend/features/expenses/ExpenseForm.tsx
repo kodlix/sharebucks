@@ -24,7 +24,7 @@ export function ExpenseForm({
 }: {
   group: GroupDetail;
   currentUserId: string;
-  initial?: Expense;
+  initial?: Expense | undefined;
   onSubmit: (input: ExpenseInput) => void;
   pending: boolean;
   submitLabel: string;
@@ -73,7 +73,7 @@ export function ExpenseForm({
     if (participants.length === 0) return setError("Pick at least one participant.");
     let shares: ExpenseInput["shares"];
     if (mode === "equal") {
-      shares = participants.map((id, i) => ({ user_id: id, amount: equalShares[i] }));
+      shares = participants.map((id, i) => ({ user_id: id, amount: equalShares[i] ?? 0 }));
     } else {
       shares = participants.map((id) => ({ user_id: id, amount: parseMoney(customStr[id] ?? "", currency) ?? -1 }));
       if (shares.some((s) => s.amount < 0)) return setError("Enter a valid amount for every participant.");
@@ -205,7 +205,7 @@ export function ExpenseForm({
                 {on &&
                   (mode === "equal" ? (
                     <span className="text-sm tabular-nums text-muted-foreground">
-                      {amount != null ? formatMoney(equalShares[idx], currency) : "—"}
+                      {amount != null ? formatMoney(equalShares[idx] ?? 0, currency) : "—"}
                     </span>
                   ) : (
                     <Input
@@ -239,7 +239,7 @@ export function ExpenseForm({
             onClick={() => {
               const eq = splitEqually(amount, participants.length);
               const next: Record<string, string> = {};
-              participants.forEach((id, i) => (next[id] = toDecimalString(eq[i], currency)));
+              participants.forEach((id, i) => (next[id] = toDecimalString(eq[i] ?? 0, currency)));
               setCustomStr(next);
             }}
           >
