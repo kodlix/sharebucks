@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 
+from app.security import hash_password, verify_password
 from app.store import db
 from app.models import (
     RegisterInput,
@@ -101,7 +102,9 @@ def response_user(user: Dict[str, Any]) -> Dict[str, Any]:
 
 def expense_to_response(expense: Dict[str, Any]) -> Dict[str, Any]:
     payer = user_from_db(expense["payer_id"])
-    category = db.categories.get(expense["category_id"]) if hasattr(db, "categories") else None
+    category = (
+        db.categories.get(expense["category_id"]) if hasattr(db, "categories") else None
+    )
     out = {
         "id": expense["id"],
         "group_id": expense["group_id"],
@@ -116,7 +119,14 @@ def expense_to_response(expense: Dict[str, Any]) -> Dict[str, Any]:
         "updated_at": expense["updated_at"],
         "shares": expense.get("shares", []),
         "payer": response_user(payer) if payer else None,
-        "category": category or {"id": expense["category_id"], "group_id": expense["group_id"], "name": "General", "is_default": True, "created_at": now_iso()},
+        "category": category
+        or {
+            "id": expense["category_id"],
+            "group_id": expense["group_id"],
+            "name": "General",
+            "is_default": True,
+            "created_at": now_iso(),
+        },
     }
     return out
 
@@ -127,23 +137,36 @@ def health() -> Dict[str, str]:
 
 
 @app.post("/api/auth/register", response_model=User, tags=["Auth"])
-def register(payload: RegisterInput, response: Response, request: Request) -> Dict[str, Any]:
+def register(
+    payload: RegisterInput, response: Response, request: Request
+) -> Dict[str, Any]:
     email = payload.email.lower()
     for user in db.users.values():
         if user["email"].lower() == email:
-            raise HTTPException(status_code=409, detail={"error": {"message": "Email already registered", "status": 409}})
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": {"message": "Email already registered", "status": 409}
+                },
+            )
 
     user_id = f"u{uuid4().hex[:8]}"
     user = {
         "id": user_id,
         "email": email,
-        "password": payload.password,
+        "password": hash_password(payload.password),
         "display_name": payload.display_name,
         "created_at": now_iso(),
     }
     db.users[user_id] = user
     db.current_user_id = user_id
-    response.set_cookie(key="session", value=user_id, httponly=True, samesite="none", secure=session_cookie_secure(request))
+    response.set_cookie(
+        key="session",
+        value=user_id,
+        httponly=True,
+        samesite="none",
+        secure=session_cookie_secure(request),
+    )
     return response_user(user)
 
 
@@ -152,13 +175,24 @@ def login(payload: LoginInput, response: Response, request: Request) -> Dict[str
     email = payload.email.lower()
     user = None
     for item in db.users.values():
-        if item["email"].lower() == email and item["password"] == payload.password:
+        if item["email"].lower() == email and verify_password(
+            payload.password, item.get("password", "")
+        ):
             user = item
             break
     if not user:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Incorrect email or password", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Incorrect email or password", "status": 401}},
+        )
     db.current_user_id = user["id"]
-    response.set_cookie(key="session", value=user["id"], httponly=True, samesite="none", secure=session_cookie_secure(request))
+    response.set_cookie(
+        key="session",
+        value=user["id"],
+        httponly=True,
+        samesite="none",
+        secure=session_cookie_secure(request),
+    )
     return response_user(user)
 
 
@@ -190,19 +224,28 @@ def me(request: Request) -> Any:
 def list_groups(request: Request) -> List[Dict[str, Any]]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     groups = []
     for group in db.groups.values():
         members = [m for m in group.get("members", []) if m["user_id"] == user_id]
         if members:
             role = members[0]["role"]
-            groups.append({
-                **group,
-                "role": role,
-                "member_count": len(group.get("members", [])),
-                "my_balance": 0,
-                "total_spent": sum(e["amount"] for e in db.expenses.values() if e["group_id"] == group["id"]),
-            })
+            groups.append(
+                {
+                    **group,
+                    "role": role,
+                    "member_count": len(group.get("members", [])),
+                    "my_balance": 0,
+                    "total_spent": sum(
+                        e["amount"]
+                        for e in db.expenses.values()
+                        if e["group_id"] == group["id"]
+                    ),
+                }
+            )
     return groups
 
 
@@ -210,7 +253,10 @@ def list_groups(request: Request) -> List[Dict[str, Any]]:
 def create_group(payload: CreateGroupInput, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
 
     group_id = f"g{uuid4().hex[:8]}"
     now = now_iso()
@@ -251,20 +297,31 @@ def create_group(payload: CreateGroupInput, request: Request) -> Dict[str, Any]:
 
 
 @app.get("/api/groups/discover", tags=["Groups"])
-def discover_groups(request: Request, search: Optional[str] = None) -> List[Dict[str, Any]]:
+def discover_groups(
+    request: Request, search: Optional[str] = None
+) -> List[Dict[str, Any]]:
     q = (search or "").lower()
     out = []
     for group in db.groups.values():
-        if q and q not in group["name"].lower() and q not in group["description"].lower():
+        if (
+            q
+            and q not in group["name"].lower()
+            and q not in group["description"].lower()
+        ):
             continue
         if group["visibility"] != "public":
             continue
         member_count = len(group.get("members", []))
-        out.append({
-            **group,
-            "member_count": member_count,
-            "is_member": any(member["user_id"] == session_user(request) for member in group.get("members", [])),
-        })
+        out.append(
+            {
+                **group,
+                "member_count": member_count,
+                "is_member": any(
+                    member["user_id"] == session_user(request)
+                    for member in group.get("members", [])
+                ),
+            }
+        )
     return out
 
 
@@ -272,12 +329,24 @@ def discover_groups(request: Request, search: Optional[str] = None) -> List[Dict
 def get_group(group_id: str, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
-    if not any(member["user_id"] == user_id and member["status"] == "active" for member in group.get("members", [])):
-        raise HTTPException(status_code=403, detail={"error": {"message": "Not an active member", "status": 403}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
+    if not any(
+        member["user_id"] == user_id and member["status"] == "active"
+        for member in group.get("members", [])
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail={"error": {"message": "Not an active member", "status": 403}},
+        )
     role = member_role_in_group(group_id, user_id)
     return {
         **group,
@@ -288,17 +357,33 @@ def get_group(group_id: str, request: Request) -> Dict[str, Any]:
 
 
 @app.patch("/api/groups/{group_id}", tags=["Groups"])
-def update_group(group_id: str, payload: UpdateGroupInput, request: Request) -> Dict[str, Any]:
+def update_group(
+    group_id: str, payload: UpdateGroupInput, request: Request
+) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
     if member_role_in_group(group_id, user_id) != "admin":
-        raise HTTPException(status_code=403, detail={"error": {"message": "Only admin may edit", "status": 403}})
+        raise HTTPException(
+            status_code=403,
+            detail={"error": {"message": "Only admin may edit", "status": 403}},
+        )
     if group.get("is_archived"):
-        raise HTTPException(status_code=409, detail={"error": {"message": "Archived group cannot be edited", "status": 409}})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": {"message": "Archived group cannot be edited", "status": 409}
+            },
+        )
 
     if payload.name is not None:
         group["name"] = payload.name
@@ -321,27 +406,58 @@ def update_group(group_id: str, payload: UpdateGroupInput, request: Request) -> 
 def archive_group(group_id: str, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
     if member_role_in_group(group_id, user_id) != "admin":
-        raise HTTPException(status_code=403, detail={"error": {"message": "Only admin may archive", "status": 403}})
+        raise HTTPException(
+            status_code=403,
+            detail={"error": {"message": "Only admin may archive", "status": 403}},
+        )
     group["is_archived"] = True
     group["updated_at"] = now_iso()
-    return {**group, "role": "admin", "members": group.get("members", []), "categories": group.get("categories", [])}
+    return {
+        **group,
+        "role": "admin",
+        "members": group.get("members", []),
+        "categories": group.get("categories", []),
+    }
 
 
 @app.post("/api/groups/{group_id}/leave", tags=["Groups"])
 def leave_group(group_id: str, request: Request) -> Response:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
-    if member_role_in_group(group_id, user_id) == "admin" and len(group.get("members", [])) == 1:
-        raise HTTPException(status_code=409, detail={"error": {"message": "Admin cannot leave; settle debt first", "status": 409}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
+    if (
+        member_role_in_group(group_id, user_id) == "admin"
+        and len(group.get("members", [])) == 1
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": {
+                    "message": "Admin cannot leave; settle debt first",
+                    "status": 409,
+                }
+            },
+        )
     group["members"] = [m for m in group.get("members", []) if m["user_id"] != user_id]
     return Response(status_code=204)
 
@@ -350,12 +466,21 @@ def leave_group(group_id: str, request: Request) -> Response:
 def list_members(group_id: str, request: Request) -> List[Dict[str, Any]]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
     if not any(member["user_id"] == user_id for member in group.get("members", [])):
-        raise HTTPException(status_code=403, detail={"error": {"message": "Not an active member", "status": 403}})
+        raise HTTPException(
+            status_code=403,
+            detail={"error": {"message": "Not an active member", "status": 403}},
+        )
     return group.get("members", [])
 
 
@@ -363,14 +488,33 @@ def list_members(group_id: str, request: Request) -> List[Dict[str, Any]]:
 def create_invite(group_id: str, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
     if group.get("is_archived"):
-        raise HTTPException(status_code=409, detail={"error": {"message": "Archived groups accept no new members", "status": 409}})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": {
+                    "message": "Archived groups accept no new members",
+                    "status": 409,
+                }
+            },
+        )
     if member_role_in_group(group_id, user_id) != "admin":
-        raise HTTPException(status_code=403, detail={"error": {"message": "Only admin may create invite", "status": 403}})
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": {"message": "Only admin may create invite", "status": 403}
+            },
+        )
     code = uuid4().hex[:8]
     invite = {
         "id": f"inv{uuid4().hex[:8]}",
@@ -384,44 +528,92 @@ def create_invite(group_id: str, request: Request) -> Dict[str, Any]:
 
 
 @app.post("/api/groups/{group_id}/join", tags=["Groups"])
-def join_group(group_id: str, request: Request, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def join_group(
+    group_id: str, request: Request, payload: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
     if any(member["user_id"] == user_id for member in group.get("members", [])):
-        raise HTTPException(status_code=409, detail={"error": {"message": "Already a member or archived group", "status": 409}})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": {
+                    "message": "Already a member or archived group",
+                    "status": 409,
+                }
+            },
+        )
     if group.get("is_archived"):
-        raise HTTPException(status_code=409, detail={"error": {"message": "Already a member or archived group", "status": 409}})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": {
+                    "message": "Already a member or archived group",
+                    "status": 409,
+                }
+            },
+        )
     if group.get("visibility") == "private":
         code = (payload or {}).get("code")
         if not code:
-            raise HTTPException(status_code=403, detail={"error": {"message": "Private group requires invitation code", "status": 403}})
-    group.setdefault("members", []).append({
-        "id": f"m{uuid4().hex[:8]}",
-        "group_id": group_id,
-        "user_id": user_id,
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": {
+                        "message": "Private group requires invitation code",
+                        "status": 403,
+                    }
+                },
+            )
+    group.setdefault("members", []).append(
+        {
+            "id": f"m{uuid4().hex[:8]}",
+            "group_id": group_id,
+            "user_id": user_id,
+            "role": "member",
+            "status": "active",
+            "joined_at": now_iso(),
+            "left_at": None,
+            "user": response_user(user_from_db(user_id)),
+        }
+    )
+    return {
+        **group,
         "role": "member",
-        "status": "active",
-        "joined_at": now_iso(),
-        "left_at": None,
-        "user": response_user(user_from_db(user_id)),
-    })
-    return {**group, "role": "member", "members": group.get("members", []), "categories": group.get("categories", [])}
+        "members": group.get("members", []),
+        "categories": group.get("categories", []),
+    }
 
 
 @app.delete("/api/groups/{group_id}/members/{user_id}", tags=["Groups"])
 def remove_member(group_id: str, user_id: str, request: Request) -> Response:
     current_user = session_user(request)
     if not current_user:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
     if member_role_in_group(group_id, current_user) != "admin":
-        raise HTTPException(status_code=403, detail={"error": {"message": "Admin-only action", "status": 403}})
+        raise HTTPException(
+            status_code=403,
+            detail={"error": {"message": "Admin-only action", "status": 403}},
+        )
     removed = False
     members = group.get("members", [])
     for idx, member in enumerate(members):
@@ -430,25 +622,50 @@ def remove_member(group_id: str, user_id: str, request: Request) -> Response:
             removed = True
             break
     if not removed:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Member not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Member not found", "status": 404}},
+        )
     return Response(status_code=204)
 
 
 @app.post("/api/groups/{group_id}/categories", tags=["Groups"])
-def create_category(group_id: str, payload: Dict[str, str], request: Request) -> Dict[str, Any]:
+def create_category(
+    group_id: str, payload: Dict[str, str], request: Request
+) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
     if group.get("is_archived"):
-        raise HTTPException(status_code=409, detail={"error": {"message": "Archived group cannot accept category", "status": 409}})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": {
+                    "message": "Archived group cannot accept category",
+                    "status": 409,
+                }
+            },
+        )
     name = (payload.get("name") or "").strip()
     if not name:
-        raise HTTPException(status_code=422, detail={"error": {"message": "Empty category name", "status": 422}})
+        raise HTTPException(
+            status_code=422,
+            detail={"error": {"message": "Empty category name", "status": 422}},
+        )
     if any(cat["name"].lower() == name.lower() for cat in group.get("categories", [])):
-        raise HTTPException(status_code=409, detail={"error": {"message": "Duplicate category name", "status": 409}})
+        raise HTTPException(
+            status_code=409,
+            detail={"error": {"message": "Duplicate category name", "status": 409}},
+        )
     category = {
         "id": f"cat{uuid4().hex[:8]}",
         "group_id": group_id,
@@ -464,12 +681,21 @@ def create_category(group_id: str, payload: Dict[str, str], request: Request) ->
 def list_expenses(group_id: str, request: Request) -> List[Dict[str, Any]]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
     if not any(member["user_id"] == user_id for member in group.get("members", [])):
-        raise HTTPException(status_code=403, detail={"error": {"message": "Not an active member", "status": 403}})
+        raise HTTPException(
+            status_code=403,
+            detail={"error": {"message": "Not an active member", "status": 403}},
+        )
     out = []
     for expense in db.expenses.values():
         if expense["group_id"] == group_id:
@@ -478,31 +704,58 @@ def list_expenses(group_id: str, request: Request) -> List[Dict[str, Any]]:
 
 
 @app.post("/api/groups/{group_id}/expenses", tags=["Expenses"])
-def create_expense(group_id: str, payload: ExpenseInput, request: Request) -> Dict[str, Any]:
+def create_expense(
+    group_id: str, payload: ExpenseInput, request: Request
+) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
     if group.get("is_archived"):
-        raise HTTPException(status_code=409, detail={"error": {"message": "Archived group cannot accept expenses", "status": 409}})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": {
+                    "message": "Archived group cannot accept expenses",
+                    "status": 409,
+                }
+            },
+        )
     if not any(member["user_id"] == user_id for member in group.get("members", [])):
-        raise HTTPException(status_code=403, detail={"error": {"message": "Not an active member", "status": 403}})
+        raise HTTPException(
+            status_code=403,
+            detail={"error": {"message": "Not an active member", "status": 403}},
+        )
 
-    if payload.category_id not in {cat["id"] for cat in group.get("categories", [])} and payload.category_id != "cat-food":
-        raise HTTPException(status_code=422, detail={"error": {"message": "Validation error", "status": 422}})
+    if (
+        payload.category_id not in {cat["id"] for cat in group.get("categories", [])}
+        and payload.category_id != "cat-food"
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={"error": {"message": "Validation error", "status": 422}},
+        )
 
     expense_id = f"e{uuid4().hex[:8]}"
     now = now_iso()
     shares = []
     for share in payload.shares:
-        shares.append({
-            "id": f"sh{uuid4().hex[:8]}",
-            "expense_id": expense_id,
-            "user_id": share.user_id,
-            "amount": share.amount,
-        })
+        shares.append(
+            {
+                "id": f"sh{uuid4().hex[:8]}",
+                "expense_id": expense_id,
+                "user_id": share.user_id,
+                "amount": share.amount,
+            }
+        )
 
     expense = {
         "id": expense_id,
@@ -517,8 +770,25 @@ def create_expense(group_id: str, payload: ExpenseInput, request: Request) -> Di
         "created_at": now,
         "updated_at": now,
         "shares": shares,
-        "payer": response_user(user_from_db(payload.payer_id)) if user_from_db(payload.payer_id) else None,
-        "category": next((cat for cat in group.get("categories", []) if cat["id"] == payload.category_id), {"id": payload.category_id, "group_id": group_id, "name": "General", "is_default": True, "created_at": now}),
+        "payer": (
+            response_user(user_from_db(payload.payer_id))
+            if user_from_db(payload.payer_id)
+            else None
+        ),
+        "category": next(
+            (
+                cat
+                for cat in group.get("categories", [])
+                if cat["id"] == payload.category_id
+            ),
+            {
+                "id": payload.category_id,
+                "group_id": group_id,
+                "name": "General",
+                "is_default": True,
+                "created_at": now,
+            },
+        ),
     }
     db.expenses[expense_id] = expense
     return expense_to_response(expense)
@@ -528,41 +798,73 @@ def create_expense(group_id: str, payload: ExpenseInput, request: Request) -> Di
 def get_expense(group_id: str, expense_id: str, request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     expense = db.expenses.get(expense_id)
     if not expense:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Expense not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Expense not found", "status": 404}},
+        )
     if expense["group_id"] != group_id:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Expense not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Expense not found", "status": 404}},
+        )
     return expense_to_response(expense)
 
 
 @app.patch("/api/groups/{group_id}/expenses/{expense_id}", tags=["Expenses"])
-def update_expense(group_id: str, expense_id: str, payload: ExpenseInput, request: Request) -> Dict[str, Any]:
+def update_expense(
+    group_id: str, expense_id: str, payload: ExpenseInput, request: Request
+) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     expense = db.expenses.get(expense_id)
     if not expense:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Expense not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Expense not found", "status": 404}},
+        )
     if expense["created_by"] != user_id:
-        raise HTTPException(status_code=403, detail={"error": {"message": "Only creator can edit", "status": 403}})
+        raise HTTPException(
+            status_code=403,
+            detail={"error": {"message": "Only creator can edit", "status": 403}},
+        )
     group = db.groups.get(group_id)
     if group and group.get("is_archived"):
-        raise HTTPException(status_code=409, detail={"error": {"message": "Archived group cannot be changed", "status": 409}})
-    expense.update({
-        "title": payload.title,
-        "amount": payload.amount,
-        "category_id": payload.category_id,
-        "payer_id": payload.payer_id,
-        "expense_date": payload.expense_date.isoformat(),
-        "notes": payload.notes,
-        "updated_at": now_iso(),
-        "shares": [
-            {"id": f"sh{uuid4().hex[:8]}", "expense_id": expense_id, "user_id": s.user_id, "amount": s.amount}
-            for s in payload.shares
-        ],
-    })
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": {"message": "Archived group cannot be changed", "status": 409}
+            },
+        )
+    expense.update(
+        {
+            "title": payload.title,
+            "amount": payload.amount,
+            "category_id": payload.category_id,
+            "payer_id": payload.payer_id,
+            "expense_date": payload.expense_date.isoformat(),
+            "notes": payload.notes,
+            "updated_at": now_iso(),
+            "shares": [
+                {
+                    "id": f"sh{uuid4().hex[:8]}",
+                    "expense_id": expense_id,
+                    "user_id": s.user_id,
+                    "amount": s.amount,
+                }
+                for s in payload.shares
+            ],
+        }
+    )
     return expense_to_response(expense)
 
 
@@ -570,15 +872,29 @@ def update_expense(group_id: str, expense_id: str, payload: ExpenseInput, reques
 def delete_expense(group_id: str, expense_id: str, request: Request) -> Response:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     expense = db.expenses.get(expense_id)
     if not expense:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Expense not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Expense not found", "status": 404}},
+        )
     if expense["created_by"] != user_id:
-        raise HTTPException(status_code=403, detail={"error": {"message": "Only creator can delete", "status": 403}})
+        raise HTTPException(
+            status_code=403,
+            detail={"error": {"message": "Only creator can delete", "status": 403}},
+        )
     group = db.groups.get(group_id)
     if group and group.get("is_archived"):
-        raise HTTPException(status_code=409, detail={"error": {"message": "Archived group cannot be changed", "status": 409}})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": {"message": "Archived group cannot be changed", "status": 409}
+            },
+        )
     del db.expenses[expense_id]
     return Response(status_code=204)
 
@@ -587,23 +903,34 @@ def delete_expense(group_id: str, expense_id: str, request: Request) -> Response
 def get_balances(group_id: str, request: Request) -> List[Dict[str, Any]]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
     if not any(member["user_id"] == user_id for member in group.get("members", [])):
-        raise HTTPException(status_code=403, detail={"error": {"message": "Not an active member", "status": 403}})
+        raise HTTPException(
+            status_code=403,
+            detail={"error": {"message": "Not an active member", "status": 403}},
+        )
     rows = []
     for member in group.get("members", []):
         u = user_from_db(member["user_id"])
-        rows.append({
-            "user_id": member["user_id"],
-            "user": response_user(u) if u else None,
-            "status": member["status"],
-            "paid": 0,
-            "owed": 0,
-            "net": 0,
-        })
+        rows.append(
+            {
+                "user_id": member["user_id"],
+                "user": response_user(u) if u else None,
+                "status": member["status"],
+                "paid": 0,
+                "owed": 0,
+                "net": 0,
+            }
+        )
     return rows
 
 
@@ -611,12 +938,21 @@ def get_balances(group_id: str, request: Request) -> List[Dict[str, Any]]:
 def settlement_suggestions(group_id: str, request: Request) -> List[Dict[str, Any]]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
     if not any(member["user_id"] == user_id for member in group.get("members", [])):
-        raise HTTPException(status_code=403, detail={"error": {"message": "Not an active member", "status": 403}})
+        raise HTTPException(
+            status_code=403,
+            detail={"error": {"message": "Not an active member", "status": 403}},
+        )
     return []
 
 
@@ -624,13 +960,26 @@ def settlement_suggestions(group_id: str, request: Request) -> List[Dict[str, An
 def list_settlements(group_id: str, request: Request) -> List[Dict[str, Any]]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
     if not any(member["user_id"] == user_id for member in group.get("members", [])):
-        raise HTTPException(status_code=403, detail={"error": {"message": "Not an active member", "status": 403}})
-    return [settlement_to_response(item) for item in db.settlements.values() if item["group_id"] == group_id]
+        raise HTTPException(
+            status_code=403,
+            detail={"error": {"message": "Not an active member", "status": 403}},
+        )
+    return [
+        settlement_to_response(item)
+        for item in db.settlements.values()
+        if item["group_id"] == group_id
+    ]
 
 
 def settlement_to_response(settlement: Dict[str, Any]) -> Dict[str, Any]:
@@ -649,17 +998,36 @@ def settlement_to_response(settlement: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @app.post("/api/groups/{group_id}/settlements", tags=["Settlements"])
-def create_settlement(group_id: str, payload: SettlementInput, request: Request) -> Dict[str, Any]:
+def create_settlement(
+    group_id: str, payload: SettlementInput, request: Request
+) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     group = db.groups.get(group_id)
     if not group:
-        raise HTTPException(status_code=404, detail={"error": {"message": "Group not found", "status": 404}})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"message": "Group not found", "status": 404}},
+        )
     if group.get("is_archived"):
-        raise HTTPException(status_code=409, detail={"error": {"message": "Archived group cannot record settlements", "status": 409}})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": {
+                    "message": "Archived group cannot record settlements",
+                    "status": 409,
+                }
+            },
+        )
     if payload.amount <= 0:
-        raise HTTPException(status_code=422, detail={"error": {"message": "Validation or rule error", "status": 422}})
+        raise HTTPException(
+            status_code=422,
+            detail={"error": {"message": "Validation or rule error", "status": 422}},
+        )
     settlement_id = f"s{uuid4().hex[:8]}"
     settlement = {
         "id": settlement_id,
@@ -679,17 +1047,26 @@ def create_settlement(group_id: str, payload: SettlementInput, request: Request)
 def dashboard(request: Request) -> Dict[str, Any]:
     user_id = session_user(request)
     if not user_id:
-        raise HTTPException(status_code=401, detail={"error": {"message": "Authentication required", "status": 401}})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": {"message": "Authentication required", "status": 401}},
+        )
     groups = []
     for group in db.groups.values():
         if any(member["user_id"] == user_id for member in group.get("members", [])):
-            groups.append({
-                **group,
-                "role": member_role_in_group(group["id"], user_id),
-                "member_count": len(group.get("members", [])),
-                "my_balance": 0,
-                "total_spent": sum(e["amount"] for e in db.expenses.values() if e["group_id"] == group["id"]),
-            })
+            groups.append(
+                {
+                    **group,
+                    "role": member_role_in_group(group["id"], user_id),
+                    "member_count": len(group.get("members", [])),
+                    "my_balance": 0,
+                    "total_spent": sum(
+                        e["amount"]
+                        for e in db.expenses.values()
+                        if e["group_id"] == group["id"]
+                    ),
+                }
+            )
     return {
         "groups": groups,
         "totals": {
@@ -704,7 +1081,17 @@ def dashboard(request: Request) -> Dict[str, Any]:
             "total": sum(e["amount"] for e in db.expenses.values()),
             "this_month": 0,
             "last_month": 0,
-            "by_category": [{"name": "General", "amount": sum(e["amount"] for e in db.expenses.values())}],
-            "by_month": [{"month": date.today().strftime("%Y-%m"), "amount": sum(e["amount"] for e in db.expenses.values())}],
+            "by_category": [
+                {
+                    "name": "General",
+                    "amount": sum(e["amount"] for e in db.expenses.values()),
+                }
+            ],
+            "by_month": [
+                {
+                    "month": date.today().strftime("%Y-%m"),
+                    "amount": sum(e["amount"] for e in db.expenses.values()),
+                }
+            ],
         },
     }

@@ -45,12 +45,35 @@ def test_register_and_me_round_trip(client):
     assert me["email"] == payload["email"]
 
 
-def test_create_and_list_groups(client):
-    client.post("/api/auth/register", json={
-        "email": "owner@example.com",
+def test_register_hashes_plain_password_before_storage(client):
+    payload = {
+        "email": "secure@example.com",
         "password": "secret123",
-        "display_name": "Owner",
-    })
+        "display_name": "Secure User",
+    }
+
+    register_resp = client.post("/api/auth/register", json=payload)
+    assert register_resp.status_code == 200
+
+    user = register_resp.json()
+    stored = db.users.get(user["id"])
+    assert stored is not None
+    assert stored["password"] != payload["password"]
+    assert stored["password"].startswith("pbkdf2_sha256$")
+
+    login_resp = client.post("/api/auth/login", json=payload)
+    assert login_resp.status_code == 200
+
+
+def test_create_and_list_groups(client):
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "owner@example.com",
+            "password": "secret123",
+            "display_name": "Owner",
+        },
+    )
 
     payload = {
         "name": "Trip Crew",
@@ -73,37 +96,44 @@ def test_create_and_list_groups(client):
 
 
 def test_discover_groups_and_expenses(client):
-    client.post("/api/auth/register", json={
-        "email": "owner2@example.com",
-        "password": "secret123",
-        "display_name": "Owner Two",
-    })
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "owner2@example.com",
+            "password": "secret123",
+            "display_name": "Owner Two",
+        },
+    )
 
     discover_resp = client.get("/api/groups/discover?search=trip")
     assert discover_resp.status_code == 200
     discovered = discover_resp.json()
     assert isinstance(discovered, list)
 
-    create_group_resp = client.post("/api/groups", json={
-        "name": "Dinner Club",
-        "description": "Dinner",
-        "visibility": "public",
-        "currency": "USD",
-    })
+    create_group_resp = client.post(
+        "/api/groups",
+        json={
+            "name": "Dinner Club",
+            "description": "Dinner",
+            "visibility": "public",
+            "currency": "USD",
+        },
+    )
     assert create_group_resp.status_code == 200
     group_id = create_group_resp.json()["id"]
 
-    expense_resp = client.post(f"/api/groups/{group_id}/expenses", json={
-        "title": "Dinner",
-        "amount": 2500,
-        "category_id": "cat-food",
-        "payer_id": "u1",
-        "expense_date": "2026-09-10",
-        "notes": "Dinner receipt",
-        "shares": [
-            {"user_id": "u1", "amount": 2500}
-        ],
-    })
+    expense_resp = client.post(
+        f"/api/groups/{group_id}/expenses",
+        json={
+            "title": "Dinner",
+            "amount": 2500,
+            "category_id": "cat-food",
+            "payer_id": "u1",
+            "expense_date": "2026-09-10",
+            "notes": "Dinner receipt",
+            "shares": [{"user_id": "u1", "amount": 2500}],
+        },
+    )
     assert expense_resp.status_code == 200
     expense = expense_resp.json()
     assert expense["title"] == "Dinner"
@@ -115,11 +145,14 @@ def test_discover_groups_and_expenses(client):
 
 
 def test_balances_and_settlements_endpoints(client):
-    client.post("/api/auth/register", json={
-        "email": "owner3@example.com",
-        "password": "secret123",
-        "display_name": "Owner Three",
-    })
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "owner3@example.com",
+            "password": "secret123",
+            "display_name": "Owner Three",
+        },
+    )
 
     group_payload = {
         "name": "Balance Group",
@@ -149,11 +182,14 @@ def test_login_and_logout_endpoints(client):
         "password": "secret123",
     }
 
-    client.post("/api/auth/register", json={
-        "email": payload["email"],
-        "password": payload["password"],
-        "display_name": "Login User",
-    })
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": payload["email"],
+            "password": payload["password"],
+            "display_name": "Login User",
+        },
+    )
 
     login_resp = client.post("/api/auth/login", json=payload)
     assert login_resp.status_code == 200
