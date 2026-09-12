@@ -7,6 +7,8 @@ from sqlalchemy import Boolean, Column, Float, JSON, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.security import hash_password
+
 
 class Base(DeclarativeBase):
     pass
@@ -106,7 +108,13 @@ class MutableList(list):
 
 
 class MutableRecord(dict):
-    def __init__(self, store: "SQLAlchemyStore", model: type[Base], record_id: str, payload: Dict[str, Any]) -> None:
+    def __init__(
+        self,
+        store: "SQLAlchemyStore",
+        model: type[Base],
+        record_id: str,
+        payload: Dict[str, Any],
+    ) -> None:
         super().__init__(payload)
         self._store = store
         self._model = model
@@ -159,7 +167,9 @@ class SQLAlchemyCollection:
         return [(row.id, self.store.row_to_dict(row)) for row in rows]
 
     def __contains__(self, item: str) -> bool:
-        return self.store.session.query(self.model).filter_by(id=item).first() is not None
+        return (
+            self.store.session.query(self.model).filter_by(id=item).first() is not None
+        )
 
     def get(self, key: str, default: Any = None) -> MutableRecord | Any:
         row = self.store.session.query(self.model).filter_by(id=key).first()
@@ -192,9 +202,13 @@ class SQLAlchemyCollection:
 
 class SQLAlchemyStore:
     def __init__(self, database_url: Optional[str] = None) -> None:
-        raw_url = database_url or os.getenv("SHAREBUCKS_DB_URL", "sqlite:///./sharebucks.db")
+        raw_url = database_url or os.getenv(
+            "SHAREBUCKS_DB_URL", "sqlite:///./sharebucks.db"
+        )
         if raw_url.startswith("sqlite"):
-            self.engine = create_engine(raw_url, connect_args={"check_same_thread": False}, poolclass=StaticPool)
+            self.engine = create_engine(
+                raw_url, connect_args={"check_same_thread": False}, poolclass=StaticPool
+            )
         else:
             self.engine = create_engine(raw_url)
         self.Session = sessionmaker(bind=self.engine, autoflush=False, autocommit=False)
@@ -224,7 +238,9 @@ class SQLAlchemyStore:
         self.current_user_id = None
         self.seed()
 
-    def _persist_record(self, model: Type[Base], record_id: str, payload: Dict[str, Any]) -> None:
+    def _persist_record(
+        self, model: Type[Base], record_id: str, payload: Dict[str, Any]
+    ) -> None:
         row = self.session.query(model).filter_by(id=record_id).first()
         if row is None:
             row = model(id=record_id)
@@ -244,14 +260,14 @@ class SQLAlchemyStore:
             "u1": {
                 "id": "u1",
                 "email": "demo@sharebucks.app",
-                "password": "password123",
+                "password": hash_password("password123"),
                 "display_name": "Demo User",
                 "created_at": "2026-09-10T00:00:00+00:00",
             },
             "u2": {
                 "id": "u2",
                 "email": "friend@example.com",
-                "password": "secret123",
+                "password": hash_password("secret123"),
                 "display_name": "Friend",
                 "created_at": "2026-09-10T00:00:00+00:00",
             },
@@ -272,8 +288,26 @@ class SQLAlchemyStore:
                 "created_at": "2026-09-10T00:00:00+00:00",
                 "updated_at": "2026-09-10T00:00:00+00:00",
                 "members": [
-                    {"id": "m1", "group_id": "g1", "user_id": "u1", "role": "admin", "status": "active", "joined_at": "2026-09-10T00:00:00+00:00", "left_at": None, "user": users["u1"]},
-                    {"id": "m2", "group_id": "g1", "user_id": "u2", "role": "member", "status": "active", "joined_at": "2026-09-10T00:00:00+00:00", "left_at": None, "user": users["u2"]},
+                    {
+                        "id": "m1",
+                        "group_id": "g1",
+                        "user_id": "u1",
+                        "role": "admin",
+                        "status": "active",
+                        "joined_at": "2026-09-10T00:00:00+00:00",
+                        "left_at": None,
+                        "user": users["u1"],
+                    },
+                    {
+                        "id": "m2",
+                        "group_id": "g1",
+                        "user_id": "u2",
+                        "role": "member",
+                        "status": "active",
+                        "joined_at": "2026-09-10T00:00:00+00:00",
+                        "left_at": None,
+                        "user": users["u2"],
+                    },
                 ],
                 "categories": [],
             }

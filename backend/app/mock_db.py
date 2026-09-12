@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+
+from app.security import hash_password
 
 
 class MockDB:
@@ -15,14 +17,14 @@ class MockDB:
         self.users["u1"] = {
             "id": "u1",
             "email": "demo@sharebucks.app",
-            "password": "password123",
+            "password": hash_password("password123"),
             "display_name": "Demo User",
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         self.users["u2"] = {
             "id": "u2",
             "email": "friend@example.com",
-            "password": "secret123",
+            "password": hash_password("secret123"),
             "display_name": "Friend",
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -39,8 +41,26 @@ class MockDB:
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "role": "admin",
             "members": [
-                {"id": "m1", "group_id": "g1", "user_id": "u1", "role": "admin", "status": "active", "joined_at": datetime.now(timezone.utc).isoformat(), "left_at": None, "user": self.users["u1"]},
-                {"id": "m2", "group_id": "g1", "user_id": "u2", "role": "member", "status": "active", "joined_at": datetime.now(timezone.utc).isoformat(), "left_at": None, "user": self.users["u2"]},
+                {
+                    "id": "m1",
+                    "group_id": "g1",
+                    "user_id": "u1",
+                    "role": "admin",
+                    "status": "active",
+                    "joined_at": datetime.now(timezone.utc).isoformat(),
+                    "left_at": None,
+                    "user": self.users["u1"],
+                },
+                {
+                    "id": "m2",
+                    "group_id": "g1",
+                    "user_id": "u2",
+                    "role": "member",
+                    "status": "active",
+                    "joined_at": datetime.now(timezone.utc).isoformat(),
+                    "left_at": None,
+                    "user": self.users["u2"],
+                },
             ],
             "categories": [],
             "member_count": 2,
