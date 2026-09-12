@@ -176,6 +176,46 @@ def test_balances_and_settlements_endpoints(client):
     assert isinstance(suggestions, list)
 
 
+def test_forgot_and_reset_password_endpoints(client):
+    register_resp = client.post(
+        "/api/auth/register",
+        json={
+            "email": "forgot@example.com",
+            "password": "secret123",
+            "display_name": "Forgot User",
+        },
+    )
+    assert register_resp.status_code == 200
+
+    forgot_resp = client.post(
+        "/api/auth/forgot-password",
+        json={"email": "forgot@example.com"},
+    )
+    assert forgot_resp.status_code == 200
+    forgot_body = forgot_resp.json()
+    assert "message" in forgot_body
+    assert "reset_token" in forgot_body
+
+    token = forgot_body["reset_token"]
+    reset_resp = client.post(
+        "/api/auth/reset-password",
+        json={"token": token, "password": "newsecret123"},
+    )
+    assert reset_resp.status_code == 200
+
+    old_login = client.post(
+        "/api/auth/login",
+        json={"email": "forgot@example.com", "password": "secret123"},
+    )
+    assert old_login.status_code == 401
+
+    new_login = client.post(
+        "/api/auth/login",
+        json={"email": "forgot@example.com", "password": "newsecret123"},
+    )
+    assert new_login.status_code == 200
+
+
 def test_login_allows_browser_origin_for_vite_client(client):
     response = client.post(
         "/api/auth/login",

@@ -45,3 +45,4 @@ frontend/.wrangler/
 !.gitignore
 !.md
 backend/sharebucks.db
+backend/sharebucks.db

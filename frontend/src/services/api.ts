@@ -5,6 +5,7 @@ import type {
   DiscoverGroup,
   Expense,
   ExpenseInput,
+  ForgotPasswordInput,
   GroupDetail,
   GroupInvite,
   GroupMember,
@@ -12,6 +13,7 @@ import type {
   LoginInput,
   MemberBalance,
   RegisterInput,
+  ResetPasswordInput,
   Settlement,
   SettlementInput,
   SettlementSuggestion,
@@ -92,6 +94,15 @@ export const api = {
     },
     async login(input: LoginInput): Promise<User> {
       return (await post<User>("/api/auth/login", input)) as User;
+    },
+    async forgotPassword(input: ForgotPasswordInput): Promise<{ message: string; reset_token?: string | null }> {
+      return (await post<{ message: string; reset_token?: string | null }>("/api/auth/forgot-password", input)) as {
+        message: string;
+        reset_token?: string | null;
+      };
+    },
+    async resetPassword(input: ResetPasswordInput): Promise<{ message: string }> {
+      return (await post<{ message: string }>("/api/auth/reset-password", input)) as { message: string };
     },
     async logout(): Promise<void> {
       await post<void>("/api/auth/logout");

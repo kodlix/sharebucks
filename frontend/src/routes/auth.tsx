@@ -60,6 +60,8 @@ function AuthPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [tab, setTab] = useState<"login" | "register">(mode ?? "login");
+  const [resetToken, setResetToken] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
 
   useEffect(() => {
     api.auth.me().then((u) => {
@@ -90,6 +92,41 @@ function AuthPage() {
       toast.error(errorMessage(e));
     }
   }
+
+  async function onForgotPassword() {
+    const email = login.getValues("email");
+    if (!email.trim()) {
+      toast.error("Enter your email to request a reset.");
+      return;
+    }
+
+    try {
+      const result = await api.auth.forgotPassword({ email });
+      toast.success(result.message || "If an account exists, a reset link token was issued.");
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
+
+  async function onResetPassword() {
+    const token = resetToken.trim();
+    const password = resetPassword.trim();
+
+    if (!token || !password) {
+      toast.error("Enter the token and your new password.");
+      return;
+    }
+
+    try {
+      const result = await api.auth.resetPassword({ token, password });
+      toast.success(result.message);
+      setResetToken("");
+      setResetPassword("");
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
+
   async function onRegister(values: RegisterValues) {
     try {
       await api.auth.register(values);
@@ -145,6 +182,31 @@ function AuthPage() {
                 <Button type="submit" className="w-full" disabled={login.formState.isSubmitting}>
                   {login.formState.isSubmitting ? "Signing in…" : "Sign in"}
                 </Button>
+                <div className="flex justify-end">
+                  <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={onForgotPassword}>
+                    Forgot password?
+                  </Button>
+                </div>
+                <div className="mt-4 rounded-lg border border-dashed bg-muted/30 p-3">
+                  <p className="text-xs font-medium text-foreground">Reset your password</p>
+                  <div className="mt-2 space-y-2">
+                    <Input
+                      placeholder="Reset token"
+                      value={resetToken}
+                      onChange={(e) => setResetToken(e.target.value)}
+                    />
+                    <Input
+                      type="password"
+                      placeholder="New password"
+                      autoComplete="new-password"
+                      value={resetPassword}
+                      onChange={(e) => setResetPassword(e.target.value)}
+                    />
+                    <Button type="button" variant="secondary" className="w-full" onClick={onResetPassword}>
+                      Update password
+                    </Button>
+                  </div>
+                </div>
               </form>
               <div className="mt-5 rounded-lg border bg-muted/50 p-3 text-xs text-muted-foreground">
                 <p className="font-medium text-foreground">Demo account</p>

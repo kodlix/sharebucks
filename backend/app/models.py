@@ -166,6 +166,15 @@ class LoginInput(BaseModel):
     password: str
 
 
+class ForgotPasswordInput(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordInput(BaseModel):
+    token: str
+    password: str
+
+
 class CreateGroupInput(BaseModel):
     name: str
     description: str

@@ -232,6 +232,8 @@ class SQLAlchemyStore:
         self.expenses = SQLAlchemyCollection(self, ExpenseRecord)
         self.settlements = SQLAlchemyCollection(self, SettlementRecord)
         self.current_user_id = None
+        self.password_reset_tokens: Dict[str, str] = {}
+        self.password_reset_emails: Dict[str, str] = {}
         self.seed()
 
     def row_to_dict(self, row: Base) -> Dict[str, Any]:
@@ -249,6 +251,8 @@ class SQLAlchemyStore:
         Base.metadata.create_all(bind=self.engine)
         self.session = self.Session()
         self.current_user_id = None
+        self.password_reset_tokens = {}
+        self.password_reset_emails = {}
         self.seed()
 
     def _persist_record(
