@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, Iterable, Mapping, Optional, Type, cast
 
-from sqlalchemy import Boolean, Column, Float, JSON, String, create_engine
+from sqlalchemy import Boolean, Column, Float, JSON, String, create_engine, func
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -153,6 +153,19 @@ class SQLAlchemyCollection:
     def __init__(self, store: "SQLAlchemyStore", model: type[Base]) -> None:
         self.store = store
         self.model = model
+
+    def get_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        if self.model is not UserRecord:
+            return None
+
+        row = (
+            self.store.session.query(self.model)
+            .filter(func.lower(self.model.email) == email.lower())
+            .first()
+        )
+        if row is None:
+            return None
+        return self.store.row_to_dict(row)
 
     def values(self) -> list[Dict[str, Any]]:
         rows = self.store.session.query(self.model).all()
