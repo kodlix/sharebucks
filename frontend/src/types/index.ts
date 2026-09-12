@@ -154,6 +154,13 @@ export interface LoginInput {
   email: string;
   password: string;
 }
+export interface ForgotPasswordInput {
+  email: string;
+}
+export interface ResetPasswordInput {
+  token: string;
+  password: string;
+}
 export interface CreateGroupInput {
   name: string;
   description: string;

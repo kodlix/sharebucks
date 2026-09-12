@@ -12,6 +12,8 @@ from app.store import db
 from app.models import (
     RegisterInput,
     LoginInput,
+    ForgotPasswordInput,
+    ResetPasswordInput,
     CreateGroupInput,
     UpdateGroupInput,
     ExpenseInput,
@@ -28,6 +30,8 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:8080",
         "http://127.0.0.1:8080",
+        "http://localhost:8082",
+        "http://127.0.0.1:8082",
         "http://192.168.1.200:8083",
         "http://localhost:8083",
         "http://localhost:8085",
@@ -178,6 +182,65 @@ def login(payload: LoginInput, response: Response, request: Request) -> Dict[str
         secure=session_cookie_secure(request),
     )
     return response_user(user)
+
+
+@app.post("/api/auth/forgot-password", tags=["Auth"])
+def forgot_password(payload: ForgotPasswordInput) -> Dict[str, Any]:
+    email = payload.email.lower()
+    user = db.users.get_by_email(email)
+    if user is not None:
+        token = uuid4().hex
+        db.password_reset_tokens[token] = email
+        db.password_reset_emails[email] = token
+        return {
+            "message": "If an account exists for that email, a reset token will be sent.",
+            "reset_token": token,
+        }
+
+    return {
+        "message": "If an account exists for that email, a reset token will be sent.",
+        "reset_token": None,
+    }
+
+
+@app.post("/api/auth/reset-password", tags=["Auth"])
+def reset_password(payload: ResetPasswordInput) -> Dict[str, str]:
+    email = db.password_reset_tokens.get(payload.token)
+    if email is None:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": {"message": "Invalid or expired reset token", "status": 400}
+            },
+        )
+
+    if len(payload.password) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": {
+                    "message": "Password must be at least 8 characters",
+                    "status": 400,
+                }
+            },
+        )
+
+    user = db.users.get_by_email(email)
+    if user is None:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": {"message": "Invalid or expired reset token", "status": 400}
+            },
+        )
+
+    user_record = db.users[user["id"]]
+    user_record["password"] = hash_password(payload.password)
+
+    db.password_reset_tokens.pop(payload.token, None)
+    db.password_reset_emails.pop(email, None)
+
+    return {"message": "Password updated successfully."}
 
 
 @app.post("/api/auth/logout", tags=["Auth"])
