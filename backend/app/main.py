@@ -6,8 +6,6 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, EmailStr
 
 from app.security import hash_password, verify_password
 from app.store import db
@@ -19,15 +17,6 @@ from app.models import (
     ExpenseInput,
     SettlementInput,
     User,
-    Group,
-    GroupDetail,
-    GroupSummary,
-    Expense,
-    Category,
-    Settlement,
-    SettlementSuggestion,
-    DashboardData,
-    ShareInput,
 )
 
 app = FastAPI(title="ShareBucks API", version="1.0.0")
@@ -141,14 +130,12 @@ def register(
     payload: RegisterInput, response: Response, request: Request
 ) -> Dict[str, Any]:
     email = payload.email.lower()
-    for user in db.users.values():
-        if user["email"].lower() == email:
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "error": {"message": "Email already registered", "status": 409}
-                },
-            )
+    existing = db.users.get_by_email(email)
+    if existing is not None:
+        raise HTTPException(
+            status_code=409,
+            detail={"error": {"message": "Email already registered", "status": 409}},
+        )
 
     user_id = f"u{uuid4().hex[:8]}"
     user = {
@@ -173,18 +160,13 @@ def register(
 @app.post("/api/auth/login", tags=["Auth"])
 def login(payload: LoginInput, response: Response, request: Request) -> Dict[str, Any]:
     email = payload.email.lower()
-    user = None
-    for item in db.users.values():
-        if item["email"].lower() == email and verify_password(
-            payload.password, item.get("password", "")
-        ):
-            user = item
-            break
-    if not user:
+    user = db.users.get_by_email(email)
+    if user is None or not verify_password(payload.password, user.get("password", "")):
         raise HTTPException(
             status_code=401,
             detail={"error": {"message": "Incorrect email or password", "status": 401}},
         )
+
     db.current_user_id = user["id"]
     response.set_cookie(
         key="session",
