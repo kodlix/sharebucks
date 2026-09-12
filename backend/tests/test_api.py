@@ -176,6 +176,19 @@ def test_balances_and_settlements_endpoints(client):
     assert isinstance(suggestions, list)
 
 
+def test_login_allows_browser_origin_for_vite_client(client):
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "demo@sharebucks.app", "password": "password123"},
+        headers={"Origin": "http://localhost:8082"},
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.headers.get("access-control-allow-origin") == "http://localhost:8082"
+    )
+
+
 def test_login_and_logout_endpoints(client):
     payload = {
         "email": "login@example.com",
