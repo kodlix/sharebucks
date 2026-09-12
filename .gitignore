@@ -44,3 +44,4 @@ frontend/.wrangler/
 # Keep local markdown/spec docs tracked intentionally
 !.gitignore
 !.md
+backend/sharebucks.db
